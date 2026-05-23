@@ -1,6 +1,6 @@
 /* Service Worker — https/localhost配信時のみ有効（file://では未登録） */
 const CACHE = "jikanwari-v2";
-const ASSETS = ["./", "./index.html", "./manifest.json", "./icon.svg", "./units.js"];
+const ASSETS = ["./", "./index.html", "./manifest.json", "./icon.svg", "./icon-180.png", "./icon-192.png", "./icon-512.png", "./units.js", "./events.js"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS).catch(()=>{})));

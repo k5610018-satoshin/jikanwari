@@ -7,13 +7,15 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="じかんわり">
-<link rel="apple-touch-icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.json">
 <title>5年4組 じかんわり</title>
 <style id="pageStyle">@page{size:A4 portrait;margin:8mm;}</style>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="units.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root{
     --bg:#f4f6fb; --card:#fff; --line:#dde3ee; --ink:#2b3242; --sub:#7a8499;
@@ -205,6 +207,22 @@
     background:#2b3242; color:#fff; padding:11px 18px; border-radius:22px; font-size:13px; font-weight:600; opacity:0; transition:.2s; pointer-events:none; max-width:90vw; text-align:center;}
   .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
 
+  /* ダークモード（画面のみ。印刷は常にライト） */
+  @media (prefers-color-scheme: dark){
+    :root{--bg:#151a22;--card:#1e242f;--line:#333d4c;--ink:#e7ecf4;--sub:#94a1b5;--accent-soft:#22304e;}
+    .cell .subj,.cell .cont,.cell .place,.ccard .cs,.ccard .cc,.cw-s,.cw-c{color:#222 !important;}
+    .uchip,.eb-cont input,.field-input,.xg-input,.xfield input{background:#2a3340;color:var(--ink);}
+    .mode-btn,.day-tab,.ctab,.cvt,.seg button,.sched-grid .sg,.schip.none,.tool-btn,.nav-btn,.period-tag{background:#2a3340;}
+    .nav-btn{color:#9db4e8;}
+  }
+  .qr-box{margin-top:8px;text-align:center;}
+  .qr-box img{width:128px;height:128px;background:#fff;padding:6px;border-radius:8px;}
+  .period-edit{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+  .period-edit label{font-size:12px;font-weight:700;color:var(--sub);display:flex;align-items:center;gap:6px;}
+  .period-edit input{flex:1;width:100%;border:1px solid var(--line);border-radius:8px;padding:8px;font-size:16px;font-family:inherit;}
+  .gcal-prev{margin-top:10px;}
+  .gcal-prev .gday{font-size:13px;padding:6px 0;border-bottom:1px solid var(--line);}
+  .gcal-prev .gday b{color:var(--accent);}
   .print-sheet{display:none;}
   @media print{
     body{background:#fff; padding:0; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
@@ -264,6 +282,7 @@
     <button class="tool-btn" id="applyBase">↘️基本を反映</button>
     <button class="tool-btn" id="openSched">📅日課・水泳</button>
     <button class="tool-btn" id="openImport">📥Excel取込</button>
+    <button class="tool-btn" id="gcalQuick">📆カレンダー取込</button>
     <button class="tool-btn" id="undoBtn" disabled>↶元に戻す</button>
     <button class="tool-btn" id="moreBtn">⚙️</button>
   </div>
@@ -324,7 +343,15 @@
     <p class="imp-note">校務PCとiPhoneで<b>同じID</b>にすると同期します。変更後は再読み込みしてください。</p></div>
   <div class="sec"><h4>児童へ配るURL（閲覧専用）</h4>
     <div class="tpl-btns"><button class="tool-btn" id="copyChildUrl">🔗 閲覧専用URLをコピー</button></div>
-    <p class="imp-note" id="childUrlPreview"></p></div>
+    <p class="imp-note" id="childUrlPreview"></p>
+    <div class="qr-box" id="childQr"></div></div>
+  <div class="sec"><h4>⏰ 時程（チャイム時刻）</h4><div class="period-edit" id="periodEdit"></div>
+    <p class="imp-note">この学級の時程です。変更は時間割全体に反映されます。</p></div>
+  <div class="sec"><h4>📆 Googleカレンダー連携</h4>
+    <input id="gcalClient" type="text" class="field-input" placeholder="OAuth クライアントID" style="margin-bottom:8px">
+    <div class="tpl-btns"><button class="tool-btn primary" id="gcalImport">📥 今週の予定を取込</button></div>
+    <div class="gcal-prev" id="gcalPreview"></div>
+    <p class="imp-note">Google CloudでWebアプリ用OAuthクライアントIDを作成→「承認済みのJavaScript生成元」に <b id="originHint"></b> を追加→上に貼付。スコープは自動で calendar.readonly。</p></div>
   <div class="sec"><h4>この週の操作</h4>
     <div class="tpl-btns">
       <button class="tool-btn" id="clearContent">🧹 今週の内容を消す（教科は残す）</button>
@@ -357,7 +384,7 @@ const Store = {
   async load(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY))||null; }catch(e){ return null; } },
   async save(d){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }catch(e){} }
 };
-let syncTimer=null, cloudReady=false, isSyncing=false, dirty=false;
+let syncTimer=null, cloudReady=false, isSyncing=false, dirty=false, cloudDown=false;
 function setSync(state){ const d=$("syncDot"); if(d){ d.className="sync-dot "+state; } }
 
 async function cloudPull(){
@@ -376,8 +403,9 @@ async function cloudPull(){
       } else if(cu>lu){ setSync("error"); if(!READONLY) toast("他端末に新しい変更があります（編集を終えると送受信します）"); isSyncing=false; return; }
       else if(lu>cu && !READONLY){ isSyncing=false; cloudPush(true); return; }
     } else if(!READONLY && store.weeks && Object.keys(store.weeks).length){ isSyncing=false; cloudPush(true); return; }
-    setSync("synced");
-  }catch(e){ cloudReady=false; setSync("offline"); }
+    if(sb && !rtChannel) subscribeRealtime(); // 接続成功時のみRealtime購読（オフライン時のwss連打を防ぐ）
+    cloudDown=false; setSync("synced");
+  }catch(e){ cloudReady=false; cloudDown=true; setSync("offline"); }
   finally{ isSyncing=false; }
 }
 function queueCloudPush(){ if(READONLY||!sb) return; setSync("saving"); clearTimeout(syncTimer); syncTimer=setTimeout(cloudPush2,1300); }
@@ -385,14 +413,15 @@ function cloudPush(immediate){ if(READONLY) return; if(immediate) cloudPush2(); 
 async function cloudPush2(){
   if(!sb || READONLY){ setSync(sb?"synced":"offline"); return; }
   if(isSyncing){ queueCloudPush(); return; }
+  if(cloudDown){ setSync("offline"); return; } // 接続不能が判明済みなら無駄打ちしない（手動同期/タブ復帰で解除）
   isSyncing=true; const now=new Date().toISOString();
   try{
     const snap=JSON.parse(JSON.stringify(store)); snap.__updated=now;
     const {error}=await sb.from("timetable").upsert({class_id:CLASS_ID, data:snap, updated_at:now});
     if(error) throw error;
     store.__updated=now; try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(store)); }catch(e){}
-    dirty=false; setSync("synced");
-  }catch(e){ setSync("error"); }   // __updatedは進めない→次回再送
+    dirty=false; cloudDown=false; setSync("synced");
+  }catch(e){ cloudDown=true; setSync("error"); }   // __updatedは進めない→次回再送
   finally{ isSyncing=false; }
 }
 let rtChannel=null;
@@ -428,7 +457,7 @@ const EXTRAS = [
   {key:"mochimono",cls:"mochi",icon:"🎒",plabel:"持物",label:"もちもの",ph:"例：習字道具・赤白ぼうし"},
   {key:"shukudai",cls:"shuku",icon:"✏️",plabel:"宿題",label:"しゅくだい",ph:"例：漢字ドリル20・音読"},
 ];
-const PERIODS=[{no:1,time:"8:45"},{no:2,time:"9:40"},{no:3,time:"10:40"},{no:4,time:"11:35"},{no:5,time:"13:20"},{no:6,time:"14:15"}];
+let PERIODS=[{no:1,time:"8:45"},{no:2,time:"9:40"},{no:3,time:"10:40"},{no:4,time:"11:35"},{no:5,time:"13:20"},{no:6,time:"14:15"}];
 const DAY_NAMES={1:"月",2:"火",3:"水",4:"木",5:"金"};
 const DAY_PERIODS={1:5,2:6,3:6,4:5,5:6};
 const SCHEDULES={ "通常":{periods:null}, "教育相談":{periods:4}, "個人懇談":{periods:4} };
@@ -475,6 +504,8 @@ function ensureWeek(ws){
 function migrate(){
   if(!store) return;
   if(!store.weeks) store.weeks={}; if(!store.base) store.base=defaultStore().base; if(!store.meta) store.meta={className:"5年4組"};
+  if(!store.meta.periods || store.meta.periods.length!==6) store.meta.periods=PERIODS.map(p=>({no:p.no,time:p.time}));
+  PERIODS=store.meta.periods; // 時程はstoreと同一参照（設定変更が即反映）
   for(const ws in store.weeks){ const wk=store.weeks[ws]; if(!wk||!wk.days) continue;
     for(let d=1;d<=5;d++){ const day=wk.days[d]; if(!day) continue; if(!day.lessons) day.lessons={};
       if(day.note!==undefined){ if(!day.mochimono) day.mochimono=day.note; delete day.note; }
@@ -775,7 +806,10 @@ function printSheetInner(){
     for(let d=1;d<=5;d++) body+=`<td class="pextra">${escapeHtml(wk.days[d][x.key])}</td>`;
     body+=`</tr>`;
   });
-  return `<div class="p-title">${escapeHtml(store.meta.className)} じかんわり</div><div class="p-date">${weekRangeLabel(ui.weekStart)}</div>
+  const qr=qrDataUrl(childUrl(),3);
+  return `<div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:5px">
+    ${qr?`<img src="${qr}" style="width:58px;height:58px" alt="閲覧QR">`:""}
+    <div><div class="p-title">${escapeHtml(store.meta.className)} じかんわり</div><div class="p-date">${weekRangeLabel(ui.weekStart)}</div></div></div>
     <table class="ptt"><thead>${head}</thead><tbody>${body}</tbody></table>`;
 }
 function buildPrintSheet(){ $("printSheet").innerHTML=printSheetInner(); }
@@ -911,8 +945,73 @@ function buildSchedGrid(){
 function fillSettings(){
   $("className").value=store.meta.className; $("classId").value=CLASS_ID;
   $("childUrlPreview").textContent=childUrl();
+  const qb=$("childQr"); if(qb){ const u=qrDataUrl(childUrl(),4); qb.innerHTML=u?`<img src="${u}" alt="閲覧用QR">`:""; }
+  const pe=$("periodEdit");
+  if(pe){ pe.innerHTML=PERIODS.map((p,i)=>`<label>${i+1}限 <input type="text" data-pi="${i}" value="${escapeAttr(p.time)}" maxlength="6"></label>`).join("");
+    pe.querySelectorAll("input").forEach(inp=>inp.addEventListener("change",()=>{ const i=+inp.dataset.pi; store.meta.periods[i].time=inp.value.trim()||store.meta.periods[i].time; persist(); render(); })); }
+  $("gcalClient").value=getGcalClientId();
+  const oh=$("originHint"); if(oh) oh.textContent=location.origin;
 }
 function childUrl(){ return location.origin+location.pathname+`?view=child&class=${encodeURIComponent(CLASS_ID)}`; }
+
+/* ===== QRコード ===== */
+function qrDataUrl(text,cell){ try{ const q=qrcode(0,'M'); q.addData(text); q.make(); return q.createDataURL(cell||4,4); }catch(e){ return ""; } }
+
+/* ===== Googleカレンダー取込（client IDがあればOAuthでリアルタイム、無ければ同梱データ） ===== */
+let gcalClient=null;
+function getGcalClientId(){ return (localStorage.getItem("jikanwari_gcal_client")||"").trim(); }
+function gcalReady(){ return !!(window.google && google.accounts && google.accounts.oauth2); }
+function importCalendar(){
+  const cid=getGcalClientId();
+  if(cid && gcalReady()){
+    try{
+      if(!gcalClient || gcalClient.__cid!==cid){
+        gcalClient=google.accounts.oauth2.initTokenClient({ client_id:cid,
+          scope:"https://www.googleapis.com/auth/calendar.readonly",
+          callback:(resp)=>{ if(resp&&resp.access_token) fetchCalendar(resp.access_token); else toast("認証がキャンセルされました"); } });
+        gcalClient.__cid=cid;
+      }
+      toast("Googleにログイン中…"); gcalClient.requestAccessToken();
+    }catch(e){ toast("OAuth初期化に失敗。client IDを確認"); }
+  } else { importBundledCalendar(); }
+}
+async function fetchCalendar(token){
+  const calId=(window.CAL_META&&CAL_META.calendarId)||"primary";
+  const tMin=new Date(ui.weekStart+"T00:00:00"), tMax=addDays(tMin,5);
+  const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events?timeMin=${tMin.toISOString()}&timeMax=${tMax.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=50`;
+  try{
+    const r=await fetch(url,{headers:{Authorization:"Bearer "+token}});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j=await r.json(); showCalPreview(eventsByDay(j.items||[]),"Googleカレンダー（最新）");
+  }catch(e){ toast("取得失敗。生成元に "+location.origin+" を登録したか確認を"); }
+}
+function eventsByDay(items){
+  const byDay={};
+  items.forEach(ev=>{ const s=ev.start&&(ev.start.date||ev.start.dateTime); if(!s)return;
+    const dt=new Date(ev.start.date? s+"T00:00:00":s); const day=(dt.getDay()||7); if(day<1||day>5)return;
+    const sum=(ev.summary||"").trim(); if(!sum||/^\d+時間授業$/.test(sum))return;
+    byDay[day]=(byDay[day]?byDay[day]+"・":"")+sum.replace(/^★/,""); });
+  return byDay;
+}
+function importBundledCalendar(){
+  const ev=window.CAL_EVENTS&&CAL_EVENTS[ui.weekStart];
+  if(!ev){ toast("この週の取込データがありません。設定でclient IDを入れるとリアルタイム取得できます"); openDrawer("moreDrawer"); return; }
+  showCalPreview(Object.assign({},ev), "取込済みデータ"+(window.CAL_META?"（"+CAL_META.fetched+"取得）":""));
+}
+function showCalPreview(byDay,src){
+  let any=false,html=`<div style="margin:6px 0;font-weight:700">📆 ${escapeHtml(src)} の行事</div>`;
+  for(let d=1;d<=5;d++){ if(byDay[d]){ any=true; html+=`<div class="gday"><b>${DAY_NAMES[d]}</b>：${escapeHtml(byDay[d])}</div>`; } }
+  if(!any){ toast("この週に行事はありませんでした"); return; }
+  html+=`<div class="tpl-btns" style="margin-top:10px"><button class="tool-btn primary" id="calAdd">行事欄に追記</button><button class="tool-btn" id="calRep">置き換える</button></div>`;
+  $("gcalPreview").innerHTML=html; openDrawer("moreDrawer");
+  const apply=(rep)=>{ snapshot(); const wk=ensureWeek(ui.weekStart);
+    for(let d=1;d<=5;d++){ if(byDay[d]){ const cur=wk.days[d].event||""; wk.days[d].event = rep? byDay[d] : (cur? (cur.indexOf(byDay[d])>=0?cur:cur+"・"+byDay[d]) : byDay[d]); } }
+    persist(); render(); closeDrawers(); toast("行事を反映しました ✅"); };
+  $("calAdd").onclick=()=>apply(false); $("calRep").onclick=()=>apply(true);
+}
+
+/* ===== 手動同期 ===== */
+function manualSync(){ if(!sb){ toast("オフライン（このPC内に保存中）"); return; } cloudDown=false; toast("同期中…"); Promise.resolve(cloudPull()).then(()=>cloudPush(true)); }
 
 function escapeHtml(s){ return (s==null?"":String(s)).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
 function escapeAttr(s){ return (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
@@ -938,8 +1037,12 @@ $("importJsonBtn").onclick=()=>$("importJsonFile").click();
 $("importJsonFile").onchange=e=>{ if(e.target.files[0]) importJson(e.target.files[0]); };
 $("className").oninput=e=>{ store.meta.className=e.target.value||"5年4組"; dirty=true; Store.save(store); const lbl=$("classNameLabel"); if(lbl) lbl.textContent=store.meta.className; };
 $("className").onblur=queueCloudPush;
-$("classId").onchange=e=>{ const v=e.target.value.trim()||"5-4-2026"; CLASS_ID=v; localStorage.setItem("jikanwari_classid",v); fillSettings(); subscribeRealtime(); cloudPull(); toast("クラスIDを変更しました"); };
+$("classId").onchange=e=>{ const v=e.target.value.trim()||"5-4-2026"; CLASS_ID=v; localStorage.setItem("jikanwari_classid",v); fillSettings(); if(rtChannel&&sb){ try{sb.removeChannel(rtChannel);}catch(_){} rtChannel=null; } cloudPull(); toast("クラスIDを変更しました"); };
 $("copyChildUrl").onclick=()=>{ const u=childUrl(); if(navigator.clipboard){ navigator.clipboard.writeText(u).then(()=>toast("閲覧用URLをコピーしました"),()=>toast(u)); } else toast(u); };
+$("gcalQuick").onclick=importCalendar;
+$("gcalImport").onclick=importCalendar;
+$("gcalClient").onchange=e=>{ localStorage.setItem("jikanwari_gcal_client",e.target.value.trim()); gcalClient=null; toast(e.target.value.trim()?"client IDを保存しました":"client IDを消去"); };
+$("classTitle").addEventListener("click",e=>{ if(e.target.id==="syncDot") manualSync(); });
 $("ebClose").onclick=()=>{ ui.selected=null; closeEditbar(); render(); };
 $("ebPrev").onclick=()=>moveSelection(-1);
 $("ebNext").onclick=()=>moveSelection(1);
@@ -958,7 +1061,7 @@ let lastWide=window.matchMedia("(min-width:760px)").matches;
 window.addEventListener("resize",()=>{ const w=window.matchMedia("(min-width:760px)").matches; if(w!==lastWide){ lastWide=w; if(ui.mode==="edit"&&!READONLY) render(); } });
 window.addEventListener("keydown",e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z"){ e.preventDefault(); undo(); } });
 window.addEventListener("beforeprint",applyPrintOrient);
-document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !isEditing()) cloudPull(); });
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !isEditing()){ cloudDown=false; cloudPull(); } });
 
 if("serviceWorker" in navigator && location.protocol!=="file:"){ navigator.serviceWorker.register("./sw.js").catch(()=>{}); }
 
@@ -969,7 +1072,7 @@ if("serviceWorker" in navigator && location.protocol!=="file:"){ navigator.servi
   if(!store) store=defaultStore();
   migrate(); ensureWeek(ui.weekStart); await Store.save(store);
   applyPrintOrient(); render(); refreshUndo();
-  cloudPull(); subscribeRealtime();
+  cloudPull(); // Realtime購読はcloudPull成功時に行う（オフライン/休止時はwss接続を試みない）
 })();
 </script>
 </body>

@@ -4,3 +4,8 @@ supabase/.branches/
 _tmp_*
 .DS_Store
 node_modules/
+_pwtest.cjs
+_shot_*.png
+_check.js
+package.json
+package-lock.json
