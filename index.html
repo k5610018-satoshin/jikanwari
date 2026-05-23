@@ -1002,11 +1002,12 @@ function importCalendar(){
       if(!gcalClient || gcalClient.__cid!==cid){
         gcalClient=google.accounts.oauth2.initTokenClient({ client_id:cid,
           scope:"https://www.googleapis.com/auth/calendar.readonly",
-          callback:(resp)=>{ if(resp&&resp.access_token) fetchCalendar(resp.access_token); else toast("認証がキャンセルされました"); } });
+          callback:(resp)=>{ if(resp&&resp.access_token) fetchCalendar(resp.access_token); else { toast("Google認証をスキップ → 取込済みデータを使用"); importBundledCalendar(); } },
+          error_callback:()=>{ toast("Google認証できず → 取込済みデータを使用"); importBundledCalendar(); } });
         gcalClient.__cid=cid;
       }
       toast("Googleにログイン中…"); gcalClient.requestAccessToken();
-    }catch(e){ toast("OAuth初期化に失敗。client IDを確認"); }
+    }catch(e){ importBundledCalendar(); }
   } else { importBundledCalendar(); }
 }
 async function fetchCalendar(token){
