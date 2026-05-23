@@ -373,6 +373,7 @@ const SB_URL = "https://kbvqabsbjjbuuxcqqulj.supabase.co";
 const SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtidnFhYnNiampidXV4Y3FxdWxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NTY4NzUsImV4cCI6MjA5MzEzMjg3NX0.9bTjFcym972ANfm7XqrBCMKcs-v6ApY09L7e3mQmpMM";
 const STORAGE_KEY = "jikanwari_v2";
 let CLASS_ID = localStorage.getItem("jikanwari_classid") || "5-4-2026";
+const DEFAULT_GCAL_CLIENT = "457147324096-ulunpnkvj57sin76a2o564ika8e3tai5.apps.googleusercontent.com"; // Googleカレンダー連携の既定クライアントID（公開可）
 const PARAMS = new URLSearchParams(location.search);
 const READONLY = PARAMS.get("view") === "child";
 if(PARAMS.get("class")) CLASS_ID = PARAMS.get("class");
@@ -959,7 +960,7 @@ function qrDataUrl(text,cell){ try{ const q=qrcode(0,'M'); q.addData(text); q.ma
 
 /* ===== Googleカレンダー取込（client IDがあればOAuthでリアルタイム、無ければ同梱データ） ===== */
 let gcalClient=null;
-function getGcalClientId(){ return (localStorage.getItem("jikanwari_gcal_client")||"").trim(); }
+function getGcalClientId(){ return (localStorage.getItem("jikanwari_gcal_client")||DEFAULT_GCAL_CLIENT||"").trim(); }
 function gcalReady(){ return !!(window.google && google.accounts && google.accounts.oauth2); }
 function importCalendar(){
   const cid=getGcalClientId();
