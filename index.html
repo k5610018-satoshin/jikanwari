@@ -28,7 +28,8 @@
   html{height:-webkit-fill-available;}
   html,body{margin:0; padding:0; background:var(--bg); color:var(--ink); overflow-x:hidden;
     font-family:"Hiragino Maru Gothic ProN","Yu Gothic UI","Meiryo",system-ui,sans-serif;}
-  body{padding-bottom:calc(180px + var(--safe-bottom));}
+  body{padding-bottom:calc(26px + var(--safe-bottom));}
+  body.bar-open{padding-bottom:calc(184px + var(--safe-bottom));}
   body.readonly{padding-bottom:calc(24px + var(--safe-bottom));}
 
   header{position:sticky; top:0; z-index:30; background:var(--card);
@@ -51,6 +52,7 @@
     font-weight:700; font-size:14px; min-height:46px;}
   .mode-btn.on{background:var(--accent); color:#fff;}
   .tools{display:flex; gap:6px; padding:0 12px 10px; flex-wrap:wrap;}
+  @media (max-width:759px){ .tools{flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:8px;} .tools .tool-btn{flex:0 0 auto; white-space:nowrap;} }
   .tool-btn{padding:10px 12px; border-radius:9px; background:#fff; border:1px solid var(--line);
     color:var(--ink); font-weight:600; font-size:13px; display:flex; align-items:center; gap:4px; min-height:44px;}
   .tool-btn:active{background:#f0f3fa;}
@@ -94,12 +96,12 @@
     font-weight:800; font-size:15px; text-align:center; min-height:46px; position:relative;}
   .day-tab.on{background:var(--accent); color:#fff;}
   .day-tab.today::after{content:""; position:absolute; bottom:5px; left:50%; transform:translateX(-50%); width:6px; height:6px; border-radius:50%; background:currentColor;}
-  .day-sched{display:flex; align-items:center; gap:8px; margin-bottom:10px;}
+  .day-sched{display:flex; align-items:center; gap:8px; margin-bottom:6px;}
   .day-sched .lbl{font-size:12px; color:var(--sub); font-weight:700;}
-  .sched-btn{padding:10px 14px; border-radius:18px; background:#fff4e0; color:#a8690a; font-weight:800; font-size:13px; border:1px solid #f0d49c; min-height:44px;}
-  .lesson-list{display:flex; flex-direction:column; gap:7px;}
-  .lrow{display:flex; align-items:stretch; gap:9px; background:var(--card); border-radius:12px;
-    padding:11px; box-shadow:var(--shadow); cursor:pointer; border:2px solid transparent; min-height:54px;}
+  .sched-btn{padding:7px 13px; border-radius:16px; background:#fff4e0; color:#a8690a; font-weight:800; font-size:13px; border:1px solid #f0d49c; min-height:36px;}
+  .lesson-list{display:flex; flex-direction:column; gap:5px;}
+  .lrow{display:flex; align-items:stretch; gap:9px; background:var(--card); border-radius:11px;
+    padding:5px 11px; box-shadow:var(--shadow); cursor:pointer; border:2px solid transparent; min-height:40px;}
   .lrow.sel{border-color:var(--accent);}
   .lrow .pno{display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:34px; font-weight:800; font-size:16px;}
   .lrow .pno small{font-weight:600; font-size:9px; color:var(--sub);}
@@ -109,12 +111,17 @@
   .lrow .cont{font-size:13px; color:#46506a;}
   .lrow .chip{align-self:center; width:8px; border-radius:6px;}
 
-  .extras{margin-top:10px; display:flex; flex-direction:column; gap:8px;}
-  .xfield{border-radius:12px; padding:10px 12px; box-shadow:var(--shadow);}
+  .extras-fold{margin-top:8px; background:var(--card); border-radius:11px; box-shadow:var(--shadow); overflow:hidden;}
+  .extras-fold summary{padding:11px 13px; font-weight:700; font-size:14px; cursor:pointer; list-style:none;}
+  .extras-fold summary::-webkit-details-marker{display:none;}
+  .extras-fold summary .dot{color:#ff7043; font-size:11px;}
+  .extras-fold[open] summary{border-bottom:1px solid var(--line);}
+  .extras{margin-top:7px; display:flex; flex-direction:column; gap:5px;}
+  .extras-fold .extras{margin:0; padding:8px;}
+  .xfield{display:flex; align-items:center; gap:8px; border-radius:11px; padding:5px 10px; box-shadow:var(--shadow);}
   .xfield.event{background:var(--evt);} .xfield.mochi{background:var(--mochi);} .xfield.shuku{background:var(--shuku);}
-  .xfield label{display:block; font-weight:700; font-size:13px; color:#5a4a2a; margin-bottom:5px;}
-  .xfield.mochi label{color:#2f6b46;} .xfield.shuku label{color:#8a3d5e;}
-  .xfield input{width:100%; border:1px solid rgba(0,0,0,.10); border-radius:9px; padding:11px; font-family:inherit; font-size:16px; background:#fff;}
+  .xfield label{font-weight:800; font-size:17px; flex:none; margin:0; width:28px; text-align:center;}
+  .xfield input{flex:1; min-width:0; border:1px solid rgba(0,0,0,.10); border-radius:9px; padding:8px 10px; font-family:inherit; font-size:16px; background:#fff;}
 
   .editbar{position:fixed; left:0; right:0; bottom:0; z-index:40; background:var(--card);
     border-top:1px solid var(--line); box-shadow:0 -3px 12px rgba(30,41,73,.12);
@@ -227,6 +234,20 @@
   .gcal-prev{margin-top:10px;}
   .gcal-prev .gday{font-size:13px;padding:6px 0;border-bottom:1px solid var(--line);}
   .gcal-prev .gday b{color:var(--accent);}
+  /* 画面プレビュー用の表スタイル（罫線を画面でも表示） */
+  table.ptt{width:100%; border-collapse:collapse; table-layout:fixed;}
+  table.ptt th, table.ptt td{border:1.3px solid #8a93a3; padding:6px; vertical-align:top; word-break:break-word;}
+  table.ptt th{background:#e9eef7; text-align:center; font-weight:800; font-size:13px;}
+  table.ptt th.today{background:#d6e4ff;}
+  table.ptt .pno{width:46px; text-align:center; font-weight:800; background:#f2f4f8; font-size:12px;}
+  table.ptt td .ps{font-weight:800; font-size:13px;}
+  table.ptt td .ps .place{font-size:10px; color:#0a6b46; font-weight:700; margin-left:3px;}
+  table.ptt td .pc{font-size:12px; color:#333; margin-top:1px;}
+  table.ptt td.off{background:#eef0f3;}
+  table.ptt td.pextra{font-size:12px;}
+  table.ptt tr.r-event td.pextra{background:var(--evt);}
+  table.ptt tr.r-mochi td.pextra{background:var(--mochi);}
+  table.ptt tr.r-shuku td.pextra{background:var(--shuku);}
   .print-sheet{display:none;}
   @media print{
     body{background:#fff; padding:0; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
@@ -611,12 +632,13 @@ function dayViewHTML(){
       <div class="cont">${escapeHtml(l.content)||'<span style="color:#b3bcce">ひとこと内容</span>'}</div></div></div>`;
   }
   list+=`</div>`;
-  let extras=`<div class="extras">`;
+  const anyExtra = EXTRAS.some(x=>wk.days[d][x.key]);
+  let extras=`<details class="extras-fold"${anyExtra?" open":""}><summary>📌 行事・持ち物・宿題${anyExtra?` <span class="dot">●</span>`:""}</summary><div class="extras">`;
   EXTRAS.forEach(x=>{
-    extras+=`<div class="xfield ${x.cls}"><label>${x.icon} ${x.label}（${DAY_NAMES[d]}）</label>
-      <input class="xinput" data-x="${x.key}" type="text" maxlength="80" value="${escapeAttr(wk.days[d][x.key])}" placeholder="${x.ph}"></div>`;
+    extras+=`<div class="xfield ${x.cls}"><label title="${x.label}">${x.icon}</label>
+      <input class="xinput" data-x="${x.key}" type="text" maxlength="80" value="${escapeAttr(wk.days[d][x.key])}" placeholder="${x.label}　${x.ph}"></div>`;
   });
-  extras+=`</div>`;
+  extras+=`</div></details>`;
   return tabs+sched+list+extras;
 }
 
@@ -644,7 +666,11 @@ function openEditbar(day,period){
   chips+=SUBJECTS.map(s=>`<button class="schip ${l.subject===s.n?"on":""}" data-s="${s.n}" style="background:${s.c}">${s.n}</button>`).join("");
   $("subjChips").innerHTML=chips;
   $("subjChips").querySelectorAll(".schip").forEach(b=>b.addEventListener("click",()=>{
-    snapshot(); l.subject=b.dataset.s; if(l.subject!=="体育") l.place=""; persist(); refreshGridCell(day,period); openEditbar(day,period);
+    snapshot(); const newS=b.dataset.s;
+    if(newS!==l.subject) l.content="";              // 教科を変えたら内容をクリア
+    l.subject=newS; if(l.subject!=="体育") l.place="";
+    syncShoshaMochimono(day);                        // 書写の有無で持ち物「習字道具」を自動連動
+    persist(); render(); openEditbar(day,period);
   }));
   const pcEl=$("placeChips");
   if(l.subject==="体育"){
@@ -665,7 +691,7 @@ function openEditbar(day,period){
   } else uc.style.display="none";
   const sb2=$("sameSubjBtn");
   if(l.subject){ sb2.style.display="block"; sb2.onclick=()=>applySameSubject(day,period); } else sb2.style.display="none";
-  $("editbar").classList.add("show"); adjustBarForKeyboard();
+  $("editbar").classList.add("show"); document.body.classList.add("bar-open"); adjustBarForKeyboard();
 }
 function refreshCellText(day,period){
   const wk=ensureWeek(ui.weekStart); const l=wk.days[day]&&wk.days[day].lessons[period]; if(!l) return;
@@ -695,7 +721,7 @@ function applySameSubject(day,period){
   for(let d=1;d<=5;d++) for(let p=1;p<=pc(wk,d);p++){ const l=wk.days[d].lessons[p]; if(l&&l.subject===src.subject){ l.content=src.content; n++; } }
   persist(); render(); openEditbar(day,period); toast(`「${src.subject}」${n}コマに反映`);
 }
-function closeEditbar(){ const b=$("editbar"); b.classList.remove("show"); b.style.transform=""; }
+function closeEditbar(){ const b=$("editbar"); b.classList.remove("show"); b.style.transform=""; document.body.classList.remove("bar-open"); }
 function moveSelection(delta){
   if(!ui.selected) return;
   const wk=ensureWeek(ui.weekStart); let {day,period}=ui.selected;
@@ -781,7 +807,8 @@ function renderPrintMode(){
     ${seg}
     <p style="color:var(--sub)">行事・持ち物・宿題・体育の場所も入り、1枚に収まります。</p>
     <button class="tool-btn primary" style="font-size:15px;padding:12px 22px" onclick="window.print()">🖨️ いますぐ印刷 / PDF保存</button></div>
-    <div style="overflow:auto;border:1px solid var(--line);border-radius:12px;margin-top:14px;background:#fff;padding:14px">${printSheetInner()}</div>`;
+    <div style="text-align:center;font-size:12px;color:var(--sub);margin-top:8px">↓ ${ui.printOrient==="portrait"?"📄 A4 たて":"📄 A4 よこ"} のプレビュー（用紙の向きと同じ比率）</div>
+    <div style="overflow:auto;border:1px solid var(--line);border-radius:12px;margin:6px auto 0;background:#fff;padding:14px;max-width:${ui.printOrient==="portrait"?"540px":"860px"}">${printSheetInner()}</div>`;
   $("oP").onclick=()=>setOrient("portrait");
   $("oL").onclick=()=>setOrient("landscape");
 }
@@ -1015,6 +1042,17 @@ function showCalPreview(byDay,src){
     for(let d=1;d<=5;d++){ if(byDay[d]){ const cur=wk.days[d].event||""; wk.days[d].event = rep? byDay[d] : (cur? (cur.indexOf(byDay[d])>=0?cur:cur+"・"+byDay[d]) : byDay[d]); } }
     persist(); render(); closeDrawers(); toast("行事を反映しました ✅"); };
   $("calAdd").onclick=()=>apply(false); $("calRep").onclick=()=>apply(true);
+}
+
+/* ===== 書写の持ち物を自動連動（その日に書写があれば「習字道具」を付け外し） ===== */
+function syncShoshaMochimono(day){
+  const wk=ensureWeek(ui.weekStart); const d=wk.days[day]; if(!d) return;
+  let hasShosha=false; for(const p in d.lessons){ if(d.lessons[p].subject==="書写"){ hasShosha=true; break; } }
+  let items=String(d.mochimono||"").split("・").map(s=>s.trim()).filter(Boolean);
+  const has=items.includes("習字道具");
+  if(hasShosha && !has) items.push("習字道具");
+  else if(!hasShosha && has) items=items.filter(x=>x!=="習字道具");
+  d.mochimono=items.join("・");
 }
 
 /* ===== 今が何限か（今日・授業時間帯のみ。0=時間外） ===== */
