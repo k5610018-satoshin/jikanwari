@@ -1,0 +1,15 @@
+{
+  "name": "5年4組 じかんわり",
+  "short_name": "じかんわり",
+  "description": "児童配布用の週時間割を作成・印刷・共有するアプリ",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f6fb",
+  "theme_color": "#3b6fe0",
+  "lang": "ja",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

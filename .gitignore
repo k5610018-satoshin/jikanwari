@@ -1,0 +1,6 @@
+supabase/.temp/
+supabase/.branches/
+*.local
+_tmp_*
+.DS_Store
+node_modules/
