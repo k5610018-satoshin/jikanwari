@@ -9,3 +9,4 @@ _shot_*.png
 _check.js
 package.json
 package-lock.json
+_pw*.cjs

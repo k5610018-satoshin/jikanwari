@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="じかんわり">
 <link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon.svg">
 <link rel="manifest" href="manifest.json">
 <title>5年4組 じかんわり</title>
 <style id="pageStyle">@page{size:A4 portrait;margin:8mm;}</style>
@@ -431,9 +432,9 @@ function subscribeRealtime(){
   try{
     if(rtChannel){ sb.removeChannel(rtChannel); rtChannel=null; }
     rtChannel=sb.channel("tt-"+CLASS_ID).on("postgres_changes",
-      {event:"*",schema:"public",table:"timetable",filter:"class_id=eq."+CLASS_ID},
+      {event:"*",schema:"public",table:"timetable"},
       payload=>{
-        const row=payload.new; if(!row||!row.data) return;
+        const row=payload.new; if(!row||!row.data||row.class_id!==CLASS_ID) return;
         if(row.updated_at && row.updated_at!==store.__updated && !isEditing() && !dirty){
           store=row.data; store.__updated=row.updated_at; migrate();
           try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(store)); }catch(e){}
