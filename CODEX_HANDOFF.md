@@ -38,6 +38,8 @@
 - スマホ向けに `画像として保存` を追加。`html2canvas` で印刷レイアウトをPNG化し、Web Share対応端末では共有シート、非対応端末ではPNGダウンロード。
 - QR閲覧専用ページのヘッダーにも `画像保存` ボタンを追加。
 - 児童ビューと印刷画面では、持ち物行だけ高さを大きめに確保。
+- 編集画面では、授業コマをドラッグ＆ドロップすると教科・内容・体育の場所をまとめて入れ替える。
+- 週表示下部の `行事予定` / `持ち物` / `宿題` 行は、時間割本体と同じ列幅に揃える。表示ラベルは漢字表記。
 - 設定・Excel取り込みドロワーの閉じ残り/見切れを修正。
 - Service Workerを更新し、HTMLはネット優先取得に変更。キャッシュ名は `jikanwari-v5-20260524`。
 
@@ -57,6 +59,8 @@
   - `setDayPeriodCount(wk,d,count)`
   - `setPeriodCountFromDrawer(d,count)`
   - `saveTimetableImage()`
+  - `bindLessonDrag()`
+  - `swapLessonCells(src,dst)`
 - `sw.js`
   - cache version更新
   - navigate/htmlリクエストをネット優先へ

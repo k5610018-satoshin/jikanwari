@@ -86,6 +86,9 @@
     display:flex; flex-direction:column; gap:2px; overflow:hidden; transition:border-color .1s;}
   .cell.empty{background:#f6f8fc;} .cell.off{background:#eef0f4; cursor:default;}
   .cell.sel{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft);}
+  .cell[draggable="true"], .lrow[draggable="true"]{cursor:grab; touch-action:none;}
+  .cell.dragging, .lrow.dragging{opacity:.45;}
+  .cell.drop-target, .lrow.drop-target{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft);}
   .cell .subj{font-weight:800; font-size:13px;}
   .cell .cont{font-size:11px; line-height:1.3; color:#3a4256;}
   .cell .place{font-size:10px; color:#0b6; font-weight:700;}
@@ -99,10 +102,10 @@
 
   .extras-grid{margin-top:8px; background:var(--card); border-radius:14px; padding:8px; box-shadow:var(--shadow);
     display:flex; flex-direction:column; gap:6px;}
-  .xg-row{display:grid; grid-template-columns:74px repeat(5,1fr); gap:6px; align-items:stretch;}
-  .xg-label{display:flex; align-items:center; font-weight:700; font-size:12px; color:var(--ink); border-radius:9px; padding:0 8px;}
+  .xg-row{display:grid; grid-template-columns:46px repeat(5,minmax(0,1fr)); gap:6px; align-items:stretch;}
+  .xg-label{display:flex; align-items:center; justify-content:center; text-align:center; font-weight:800; font-size:11px; line-height:1.1; color:var(--ink); border-radius:9px; padding:0 2px;}
   .xg-label.event{background:var(--evt);} .xg-label.mochi{background:var(--mochi);} .xg-label.shuku{background:var(--shuku);}
-  .xg-input{border:1px solid var(--line); border-radius:8px; padding:8px; font-family:inherit; font-size:16px; min-height:40px;}
+  .xg-input{min-width:0; border:1px solid var(--line); border-radius:8px; padding:8px; font-family:inherit; font-size:16px; min-height:40px;}
 
   .day-tabs{display:flex; gap:5px; margin-bottom:8px;}
   .day-tab{flex:1; padding:11px 0; border-radius:11px; background:#eef1f7; color:var(--sub);
@@ -134,7 +137,7 @@
   .extras-fold .extras{margin:0; padding:8px;}
   .xfield{display:flex; align-items:center; gap:8px; border-radius:11px; padding:5px 10px; box-shadow:var(--shadow);}
   .xfield.event{background:var(--evt);} .xfield.mochi{background:var(--mochi);} .xfield.shuku{background:var(--shuku);}
-  .xfield label{font-weight:800; font-size:17px; flex:none; margin:0; width:28px; text-align:center;}
+  .xfield label{font-weight:800; font-size:12px; line-height:1.1; flex:none; margin:0; width:56px; text-align:center;}
   .xfield input{flex:1; min-width:0; border:1px solid rgba(0,0,0,.10); border-radius:9px; padding:8px 10px; font-family:inherit; font-size:16px; background:#fff;}
 
   .editbar{position:fixed; left:0; right:0; bottom:0; z-index:40; background:var(--card);
@@ -569,9 +572,9 @@ const SUBJECTS = [
 const COLOR = Object.fromEntries(SUBJECTS.map(s=>[s.n,s.c]));
 const colorOf = s => COLOR[s]||"#cfd8e6";
 const EXTRAS = [
-  {key:"event",cls:"event",icon:"🎌",plabel:"行事",label:"行事予定",ph:"例：委員会・遠足・避難訓練"},
-  {key:"mochimono",cls:"mochi",icon:"🎒",plabel:"持物",label:"もちもの",ph:"例：習字道具・赤白ぼうし"},
-  {key:"shukudai",cls:"shuku",icon:"✏️",plabel:"宿題",label:"しゅくだい",ph:"例：漢字ドリル20・音読"},
+  {key:"event",cls:"event",icon:"",plabel:"行事予定",label:"行事予定",ph:"例：委員会・遠足・避難訓練"},
+  {key:"mochimono",cls:"mochi",icon:"",plabel:"持ち物",label:"持ち物",ph:"例：習字道具・赤白ぼうし"},
+  {key:"shukudai",cls:"shuku",icon:"",plabel:"宿題",label:"宿題",ph:"例：漢字ドリル20・音読"},
 ];
 let PERIODS=[{no:1,time:"8:45"},{no:2,time:"9:40"},{no:3,time:"10:40"},{no:4,time:"11:35"},{no:5,time:"13:20"},{no:6,time:"14:15"}];
 const MAX_PERIODS = 6;
@@ -619,6 +622,7 @@ let store, ui={
   selected:null, printOrient: localStorage.getItem("jikanwari_orient")||"portrait",
 };
 let undoStack=[];
+let dragCell=null, touchDrag=null, currentDropEl=null, suppressCellClickUntil=0, pointerDragBound=false;
 
 function ensureWeek(ws){
   if(!store.weeks) store.weeks={};
@@ -793,14 +797,14 @@ function weekGridHTML(){
       const l=wk.days[d].lessons[p]||{subject:"",content:"",place:""};
       const sel=(ui.selected&&ui.selected.day===d&&ui.selected.period===p)?"sel":"";
       const bg=l.subject?colorOf(l.subject)+"55":"";
-      rows+=`<div class="cell ${l.subject?"":"empty"} ${sel}" data-d="${d}" data-p="${p}" style="${bg?`background:${bg}`:""}">
+      rows+=`<div class="cell ${l.subject?"":"empty"} ${sel}" data-d="${d}" data-p="${p}" draggable="true" style="${bg?`background:${bg}`:""}">
         <div class="subj">${escapeHtml(l.subject)||"＋"}${placeTag(l)}</div><div class="cont">${escapeHtml(l.content)}</div></div>`;
     }
     rows+=`</div>`;
   }
   let ex=`<div class="extras-grid">`;
   EXTRAS.forEach(x=>{
-    ex+=`<div class="xg-row"><div class="xg-label ${x.cls}">${x.icon} ${x.label}</div>`;
+    ex+=`<div class="xg-row"><div class="xg-label ${x.cls}">${x.label}</div>`;
     for(let d=1;d<=5;d++) ex+=`<input class="xg-input" data-xg="${x.key}" data-xd="${d}" type="text" maxlength="80" value="${escapeAttr(wk.days[d][x.key])}">`;
     ex+=`</div>`;
   });
@@ -821,7 +825,7 @@ function dayViewHTML(){
   for(let p=1;p<=pc(wk,d);p++){
     const l=wk.days[d].lessons[p]||{subject:"",content:"",place:""};
     const sel=(ui.selected&&ui.selected.day===d&&ui.selected.period===p)?"sel":"";
-    list+=`<div class="lrow ${sel}" data-d="${d}" data-p="${p}">
+    list+=`<div class="lrow ${sel}" data-d="${d}" data-p="${p}" draggable="true">
       <div class="chip" style="background:${l.subject?colorOf(l.subject):'#e3e8f1'}"></div>
       <div class="pno">${p}<small>${escapeHtml(periodTimeLabel(wk,d,p))}</small></div>
       <div class="body"><div class="subj">${escapeHtml(l.subject)||"＋ 教科を選ぶ"}${l.subject==="体育"&&l.place?`<span class="place">@${escapeHtml(l.place)}</span>`:""}</div>
@@ -830,9 +834,9 @@ function dayViewHTML(){
   if(pc(wk,d)===0) list+=`<div class="holiday-card">休み</div>`;
   list+=`</div>`;
   const anyExtra = EXTRAS.some(x=>wk.days[d][x.key]);
-  let extras=`<details class="extras-fold"${anyExtra?" open":""}><summary>📌 行事・持ち物・宿題${anyExtra?` <span class="dot">●</span>`:""}</summary><div class="extras">`;
+  let extras=`<details class="extras-fold"${anyExtra?" open":""}><summary>📌 行事予定・持ち物・宿題${anyExtra?` <span class="dot">●</span>`:""}</summary><div class="extras">`;
   EXTRAS.forEach(x=>{
-    extras+=`<div class="xfield ${x.cls}"><label title="${x.label}">${x.icon}</label>
+    extras+=`<div class="xfield ${x.cls}"><label title="${x.label}">${x.plabel}</label>
       <input class="xinput" data-x="${x.key}" type="text" maxlength="80" value="${escapeAttr(wk.days[d][x.key])}" placeholder="${x.label}　${x.ph}"></div>`;
   });
   extras+=`</div></details>`;
@@ -840,7 +844,11 @@ function dayViewHTML(){
 }
 
 function bindEditCells(){
-  document.querySelectorAll(".lrow[data-d], .cell[data-d]").forEach(el=>el.addEventListener("click",()=>selectCell(+el.dataset.d,+el.dataset.p)));
+  document.querySelectorAll(".lrow[data-d], .cell[data-d]").forEach(el=>el.addEventListener("click",e=>{
+    if(Date.now()<suppressCellClickUntil){ e.preventDefault(); e.stopPropagation(); return; }
+    selectCell(+el.dataset.d,+el.dataset.p);
+  }));
+  bindLessonDrag();
   document.querySelectorAll(".day-tab").forEach(t=>t.addEventListener("click",()=>{ui.activeDay=+t.dataset.day;ui.selected=null;closeEditbar();render();}));
   document.querySelectorAll(".xinput").forEach(inp=>{ inp.addEventListener("input",()=>{ensureWeek(ui.weekStart).days[ui.activeDay][inp.dataset.x]=inp.value; dirty=true; Store.save(store);}); inp.addEventListener("blur",queueCloudPush); });
   document.querySelectorAll(".xg-input").forEach(inp=>{ inp.addEventListener("input",()=>{ensureWeek(ui.weekStart).days[+inp.dataset.xd][inp.dataset.xg]=inp.value; dirty=true; Store.save(store);}); inp.addEventListener("blur",queueCloudPush); });
@@ -848,6 +856,109 @@ function bindEditCells(){
   const cs=$("cycleSched"); if(cs) cs.addEventListener("click",cycleWeekSchedule);
   document.querySelectorAll(".startbar [data-act]").forEach(b=>b.addEventListener("click",()=>{ b.dataset.act==="copyPrev"?copyPrevWeek():applyBase(); }));
 }
+
+function lessonEls(){ return document.querySelectorAll(".cell[data-d][data-p], .lrow[data-d][data-p]"); }
+function cellFromEl(el){ return el ? {day:+el.dataset.d, period:+el.dataset.p} : null; }
+function sameCell(a,b){ return !!(a&&b&&a.day===b.day&&a.period===b.period); }
+function cloneLesson(l){ return {subject:l?.subject||"", content:l?.content||"", place:l?.place||""}; }
+function clearDropTargets(){ document.querySelectorAll(".drop-target,.dragging").forEach(el=>el.classList.remove("drop-target","dragging")); currentDropEl=null; }
+function highlightDropTarget(el){
+  if(el===currentDropEl) return;
+  if(currentDropEl) currentDropEl.classList.remove("drop-target");
+  currentDropEl=el;
+  if(el) el.classList.add("drop-target");
+}
+function lessonTargetAt(x,y){
+  const el=document.elementFromPoint(x,y);
+  return el ? el.closest(".cell[data-d][data-p], .lrow[data-d][data-p]") : null;
+}
+function swapLessonCells(src,dst){
+  if(!src||!dst||sameCell(src,dst)) return false;
+  const wk=ensureWeek(ui.weekStart);
+  if(!wk.days[src.day]||!wk.days[dst.day]) return false;
+  if(src.period>pc(wk,src.day)||dst.period>pc(wk,dst.day)) return false;
+  const a=cloneLesson(wk.days[src.day].lessons[src.period]);
+  const b=cloneLesson(wk.days[dst.day].lessons[dst.period]);
+  snapshot();
+  wk.days[src.day].lessons[src.period]=b;
+  wk.days[dst.day].lessons[dst.period]=a;
+  syncShoshaMochimono(src.day);
+  if(dst.day!==src.day) syncShoshaMochimono(dst.day);
+  ui.selected=null;
+  persist(); render(); closeEditbar();
+  toast(`${DAY_NAMES[src.day]}${src.period}限と${DAY_NAMES[dst.day]}${dst.period}限を入れ替えました`);
+  return true;
+}
+function bindLessonDrag(){
+  lessonEls().forEach(el=>{
+    el.addEventListener("dragstart",e=>{
+      dragCell=cellFromEl(el);
+      el.classList.add("dragging");
+      closeEditbar();
+      if(e.dataTransfer){
+        e.dataTransfer.effectAllowed="move";
+        e.dataTransfer.setData("text/plain", JSON.stringify(dragCell));
+      }
+    });
+    el.addEventListener("dragover",e=>{
+      if(!dragCell) return;
+      e.preventDefault();
+      if(e.dataTransfer) e.dataTransfer.dropEffect="move";
+      highlightDropTarget(el);
+    });
+    el.addEventListener("dragenter",()=>{ if(dragCell) highlightDropTarget(el); });
+    el.addEventListener("dragleave",e=>{ if(!el.contains(e.relatedTarget)) el.classList.remove("drop-target"); });
+    el.addEventListener("drop",e=>{
+      e.preventDefault();
+      let src=dragCell;
+      try{ if(e.dataTransfer?.getData("text/plain")) src=JSON.parse(e.dataTransfer.getData("text/plain")); }catch(_){}
+      const dst=cellFromEl(el);
+      suppressCellClickUntil=Date.now()+600;
+      clearDropTargets(); dragCell=null;
+      swapLessonCells(src,dst);
+    });
+    el.addEventListener("dragend",()=>{ suppressCellClickUntil=Date.now()+400; clearDropTargets(); dragCell=null; });
+    el.addEventListener("pointerdown",startTouchLessonDrag);
+  });
+  if(!pointerDragBound){
+    pointerDragBound=true;
+    document.addEventListener("pointermove",moveTouchLessonDrag,{passive:false});
+    document.addEventListener("pointerup",endTouchLessonDrag);
+    document.addEventListener("pointercancel",cancelTouchLessonDrag);
+  }
+}
+function startTouchLessonDrag(e){
+  if(e.pointerType==="mouse" || e.button!==0) return;
+  touchDrag={src:cellFromEl(e.currentTarget), el:e.currentTarget, startX:e.clientX, startY:e.clientY, dragging:false};
+}
+function moveTouchLessonDrag(e){
+  if(!touchDrag) return;
+  const dx=e.clientX-touchDrag.startX, dy=e.clientY-touchDrag.startY;
+  if(!touchDrag.dragging && Math.hypot(dx,dy)>14){
+    touchDrag.dragging=true;
+    touchDrag.el.classList.add("dragging");
+    closeEditbar();
+  }
+  if(!touchDrag.dragging) return;
+  e.preventDefault();
+  const target=lessonTargetAt(e.clientX,e.clientY);
+  highlightDropTarget(target);
+}
+function endTouchLessonDrag(e){
+  if(!touchDrag) return;
+  const wasDragging=touchDrag.dragging;
+  const src=touchDrag.src;
+  const target=wasDragging ? lessonTargetAt(e.clientX,e.clientY) : null;
+  touchDrag=null;
+  if(wasDragging){
+    e.preventDefault();
+    suppressCellClickUntil=Date.now()+700;
+    const dst=cellFromEl(target);
+    clearDropTargets();
+    swapLessonCells(src,dst);
+  }
+}
+function cancelTouchLessonDrag(){ touchDrag=null; clearDropTargets(); suppressCellClickUntil=Date.now()+400; }
 function cycleWeekSchedule(){
   snapshot();
   const wk=ensureWeek(ui.weekStart);
@@ -1017,7 +1128,7 @@ function childDayHTML(wk){
   if(pc(wk,d)===0) cards+=`<div class="ccard"><div class="cno">休</div><div class="ctxt"><div class="cs">休み</div></div></div>`;
   cards+=`</div>`;
   let ex="";
-  EXTRAS.forEach(x=>{ if(wk.days[d][x.key]) ex+=`<div class="cnote ${x.cls}"><b>${x.icon} ${x.label}</b><br>${escapeHtml(wk.days[d][x.key])}</div>`; });
+  EXTRAS.forEach(x=>{ if(wk.days[d][x.key]) ex+=`<div class="cnote ${x.cls}"><b>${x.label}</b><br>${escapeHtml(wk.days[d][x.key])}</div>`; });
   return tabs+`<div class="cdate">${md(dateObj)}（${DAY_NAMES[d]}）${isToday(d)?" ☀️きょう":""}</div>${cards}${ex}`;
 }
 
