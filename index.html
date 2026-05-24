@@ -612,12 +612,15 @@ const pad=n=>String(n).padStart(2,"0");
 const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 function mondayOf(d){const x=new Date(d);const w=x.getDay();x.setDate(x.getDate()+(w===0?-6:1-w));x.setHours(0,0,0,0);return x;}
 function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x;}
+function defaultWeekStart(){ return ymd(addDays(mondayOf(new Date()),7)); }
 const md=d=>`${d.getMonth()+1}/${d.getDate()}`;
+const INITIAL_WEEK_START = PARAMS.get("week") || defaultWeekStart();
+const INITIAL_DAY = PARAMS.get("week") ? ((new Date().getDay()||7)<=5?(new Date().getDay()||7):1) : 1;
 
 let store, ui={
-  weekStart:PARAMS.get("week") || ymd(mondayOf(new Date())), mode:READONLY?"child":"edit",
-  activeDay:((new Date().getDay()||7)<=5?(new Date().getDay()||7):1),
-  childDay:((new Date().getDay()||7)<=5?(new Date().getDay()||7):1),
+  weekStart:INITIAL_WEEK_START, mode:READONLY?"child":"edit",
+  activeDay:INITIAL_DAY,
+  childDay:INITIAL_DAY,
   childView: (READONLY && window.matchMedia("(max-width:520px)").matches)?"day":"week",
   selected:null, printOrient: localStorage.getItem("jikanwari_orient")||"portrait",
 };

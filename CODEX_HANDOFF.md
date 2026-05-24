@@ -32,6 +32,7 @@
   - QR閲覧用の児童ビューでは朝の行をさらに低くして、表示面積を抑える。
 - 宿題の初期値を `けテぶれ` に変更。
 - 児童ビューは週表示だけに固定し、閲覧URLに `week=YYYY-MM-DD` を含める。
+- `week=` なしで編集用URLを開いた場合、初期表示は今週ではなく次週の月曜始まり。前週金曜に配布・作成する運用に合わせるため。
 - 児童ビュー上部の週範囲ラベル（例: `6/8（月）〜 6/12（金）`）は非表示。日付は各曜日ヘッダー内だけに表示。
 - QRから開く児童ビューは白背景・高コントラスト文字に固定。OSのダークモードに引っ張られないよう `color-scheme: light` を指定。
 - 印刷プレビュー/印刷PDFの表罫線を強化。
@@ -54,6 +55,7 @@
   - `applyWeekSchedule(schedule)`
   - `periodTimeLabel(wk,d,p)`
   - `weekPeriodTimeLabel(wk,p)`
+  - `defaultWeekStart()`
   - `buildSchedGrid()`
   - `buildShortDayGrid()`
   - `setDayPeriodCount(wk,d,count)`
