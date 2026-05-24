@@ -1181,7 +1181,9 @@ window.addEventListener("keydown",e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerC
 window.addEventListener("beforeprint",applyPrintOrient);
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !isEditing()){ cloudDown=false; cloudPull(); } });
 
-if("serviceWorker" in navigator && location.protocol!=="file:"){ navigator.serviceWorker.register("./sw.js").catch(()=>{}); }
+if("serviceWorker" in navigator && location.protocol!=="file:"){
+  navigator.serviceWorker.register("./sw.js").then(reg => reg.update()).catch(()=>{});
+}
 
 (async function init(){
   if(READONLY) document.body.classList.add("readonly");
