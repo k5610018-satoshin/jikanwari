@@ -522,6 +522,7 @@ const EXTRAS = [
 let PERIODS=[{no:1,time:"8:45"},{no:2,time:"9:40"},{no:3,time:"10:40"},{no:4,time:"11:35"},{no:5,time:"13:20"},{no:6,time:"14:15"}];
 const DAY_NAMES={1:"月",2:"火",3:"水",4:"木",5:"金"};
 const DAY_PERIODS={1:5,2:6,3:6,4:5,5:6};
+const DEFAULT_HOMEWORK = "けテぶれ";
 const SCHEDULES={
   "通常":{periods:null},
   "教育相談":{
@@ -565,7 +566,7 @@ function ensureWeek(ws){
     for(let d=1;d<=5;d++){
       const lessons={};
       for(let p=1;p<=DAY_PERIODS[d];p++) lessons[p]={subject:(store.base[d]&&store.base[d][p])||"",content:"",place:""};
-      days[d]={lessons,event:"",mochimono:"",shukudai:"",schedule:"通常",periodsCount:DAY_PERIODS[d]};
+      days[d]={lessons,event:"",mochimono:"",shukudai:DEFAULT_HOMEWORK,schedule:"通常",periodsCount:DAY_PERIODS[d]};
     }
     store.weeks[ws]={days};
   }
@@ -581,7 +582,7 @@ function migrate(){
       if(day.note!==undefined){ if(!day.mochimono) day.mochimono=day.note; delete day.note; }
       if(day.event===undefined) day.event="";
       if(day.mochimono===undefined) day.mochimono="";
-      if(day.shukudai===undefined) day.shukudai="";
+      if(day.shukudai===undefined) day.shukudai=DEFAULT_HOMEWORK;
       if(day.schedule===undefined) day.schedule="通常";
       if(day.periodsCount===undefined) day.periodsCount=DAY_PERIODS[d];
       if(day.schedule==="教育相談" && day.periodsCount===4) day.periodsCount=DAY_PERIODS[d];
