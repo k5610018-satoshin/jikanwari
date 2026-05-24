@@ -1,5 +1,5 @@
 /* Service Worker — https/localhost配信時のみ有効（file://では未登録） */
-const CACHE = "jikanwari-v3-20260524";
+const CACHE = "jikanwari-v4-20260524";
 const ASSETS = ["./manifest.json", "./icon.svg", "./icon-180.png", "./icon-192.png", "./icon-512.png", "./units.js", "./events.js"];
 
 self.addEventListener("install", e => {

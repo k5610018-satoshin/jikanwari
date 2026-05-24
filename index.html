@@ -204,10 +204,13 @@
   .seg button{flex:1; padding:12px; border-radius:10px; background:#eef1f7; color:var(--sub); font-weight:800; font-size:14px; min-height:46px;}
   .seg button.on{background:var(--accent); color:#fff;}
   .sched-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-bottom:6px;}
+  .sched-grid.week-sched{grid-template-columns:repeat(3,1fr);}
   .sched-grid .sg{padding:9px 4px; border-radius:10px; background:#f0f3fa; text-align:center; font-weight:700; font-size:13px;}
   .sched-grid .sg .dn{font-size:15px; font-weight:800;}
   .sched-grid .sg .sv{display:block; margin-top:4px; padding:8px 0; border-radius:7px; background:#fff4e0; color:#a8690a; font-size:11px; font-weight:800; min-height:36px;}
   .sched-grid .sg .sv.normal{background:#e9eef7; color:var(--sub);}
+  .sched-grid.week-sched .sv{padding:12px 6px; border-radius:10px; background:#eef1f7; color:var(--sub); font-size:13px; font-weight:800; min-height:48px;}
+  .sched-grid.week-sched .sv.on{background:var(--accent); color:#fff;}
   .tpl-btns{display:flex; gap:8px; flex-wrap:wrap;}
   .drop{border:2px dashed #c2cee8; border-radius:12px; padding:18px; text-align:center; color:var(--sub); font-size:13px; cursor:pointer; background:#fafbfe;}
   .drop.over{border-color:var(--accent); background:var(--accent-soft);}
@@ -371,9 +374,11 @@
 <div class="drawer" id="schedDrawer">
   <button class="dh-close" data-close>×</button>
   <h3>📅 日課・テンプレート</h3>
-  <p class="dsub">曜日の日課を変えると、その日の時間数が切り替わります（タップで循環）。</p>
-  <div class="sec"><h4>曜日ごとの日課</h4><div class="sched-grid" id="schedGrid"></div>
+  <p class="dsub">教育相談・個人懇談は1週間まるごと適用します。行事などで一部の日だけ4時間にする場合は、下の例外設定を使います。</p>
+  <div class="sec"><h4>週全体の日課</h4><div class="sched-grid week-sched" id="schedGrid"></div>
     <p class="imp-note">通常 → 教育相談（1〜4限は40分、5・6限は残す）→ 個人懇談（4時間）の順に切り替わります。</p></div>
+  <div class="sec"><h4>日ごとの4時間授業（行事などの例外）</h4><div class="sched-grid" id="shortDayGrid"></div>
+    <p class="imp-note">選んだ日だけ4時間授業にします。解除すると週全体の日課に戻ります。</p></div>
   <div class="sec"><h4>クイック適用</h4>
     <div class="tpl-btns">
       <button class="tool-btn" id="tplSwim">🏊 水泳を入れる（月1・2／水5・6）</button>
@@ -586,6 +591,7 @@ function migrate(){
       if(day.schedule===undefined) day.schedule="通常";
       if(day.periodsCount===undefined) day.periodsCount=DAY_PERIODS[d];
       if(day.schedule==="教育相談" && day.periodsCount===4) day.periodsCount=DAY_PERIODS[d];
+      if(!day.scheduleOverride && (day.schedule==="教育相談" || day.schedule==="個人懇談")) day.scheduleOverride=true;
       for(let p=1;p<=DAY_PERIODS[d];p++){
         if(!day.lessons[p]) day.lessons[p]={subject:(store.base[d]&&store.base[d][p])||"",content:"",place:""};
       }
@@ -597,6 +603,33 @@ const persist=()=>{ dirty=true; Store.save(store); queueCloudPush(); };
 function pc(wk,d){ return Math.max(1, (wk.days[d]&&wk.days[d].periodsCount)||DAY_PERIODS[d]); }
 function schedulePeriodCount(schedule,d){
   return SCHEDULES[schedule] && SCHEDULES[schedule].periods ? SCHEDULES[schedule].periods : DAY_PERIODS[d];
+}
+function weekSchedule(wk){
+  const counts={};
+  for(let d=1;d<=5;d++){
+    const day=wk.days[d]||{};
+    if(day.scheduleOverride) continue;
+    const sc=day.schedule || "通常";
+    counts[sc]=(counts[sc]||0)+1;
+  }
+  const ranked=Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+  return ranked[0] || "通常";
+}
+function setDaySchedule(wk,d,schedule,override){
+  const day=wk.days[d];
+  day.schedule=schedule;
+  day.scheduleOverride=!!override;
+  day.periodsCount=schedulePeriodCount(schedule,d);
+  for(let p=1;p<=DAY_PERIODS[d];p++){
+    if(!day.lessons[p]) day.lessons[p]={subject:(store.base[d]&&store.base[d][p])||"",content:"",place:""};
+  }
+}
+function applyWeekSchedule(schedule){
+  const wk=ensureWeek(ui.weekStart);
+  for(let d=1;d<=5;d++) setDaySchedule(wk,d,schedule,false);
+}
+function hasShortDayOverride(wk,d){
+  return !!(wk.days[d] && wk.days[d].scheduleOverride && wk.days[d].periodsCount===4);
 }
 function periodTimeLabel(wk,d,p){
   const day=wk&&wk.days&&wk.days[d];
@@ -664,7 +697,7 @@ function weekGridHTML(){
   head+=`</div>`;
   let rows="";
   for(let p=1;p<=6;p++){
-    rows+=`<div class="wg-row"><div class="period-tag">${p}<small>${PERIODS[p-1].time}</small></div>`;
+    rows+=`<div class="wg-row"><div class="period-tag">${p}<small>${escapeHtml(weekPeriodTimeLabel(wk,p))}</small></div>`;
     for(let d=1;d<=5;d++){
       if(p>pc(wk,d)){ rows+=`<div class="cell off"></div>`; continue; }
       const l=wk.days[d].lessons[p]||{subject:"",content:"",place:""};
@@ -690,9 +723,9 @@ function dayViewHTML(){
   let tabs=`<div class="day-tabs">`;
   for(let i=1;i<=5;i++) tabs+=`<div class="day-tab ${i===d?"on":""} ${isToday(i)?"today":""}" data-day="${i}">${DAY_NAMES[i]}</div>`;
   tabs+=`</div>`;
-  const sc=wk.days[d].schedule;
+  const sc=weekSchedule(wk);
   const sched=`<div class="day-sched"><span class="lbl">日課</span>
-    <button class="sched-btn" id="cycleSched">${sc} ${scheduleCountLabel(wk,d)} ▸</button></div>`;
+    <button class="sched-btn" id="cycleSched">${sc}（週全体） ▸</button></div>`;
   let list=`<div class="lesson-list">`;
   for(let p=1;p<=pc(wk,d);p++){
     const l=wk.days[d].lessons[p]||{subject:"",content:"",place:""};
@@ -719,15 +752,16 @@ function bindEditCells(){
   document.querySelectorAll(".day-tab").forEach(t=>t.addEventListener("click",()=>{ui.activeDay=+t.dataset.day;ui.selected=null;closeEditbar();render();}));
   document.querySelectorAll(".xinput").forEach(inp=>{ inp.addEventListener("input",()=>{ensureWeek(ui.weekStart).days[ui.activeDay][inp.dataset.x]=inp.value; dirty=true; Store.save(store);}); inp.addEventListener("blur",queueCloudPush); });
   document.querySelectorAll(".xg-input").forEach(inp=>{ inp.addEventListener("input",()=>{ensureWeek(ui.weekStart).days[+inp.dataset.xd][inp.dataset.xg]=inp.value; dirty=true; Store.save(store);}); inp.addEventListener("blur",queueCloudPush); });
-  const cs=$("cycleSched"); if(cs) cs.addEventListener("click",()=>cycleSchedule(ui.activeDay));
+  const cs=$("cycleSched"); if(cs) cs.addEventListener("click",cycleWeekSchedule);
   document.querySelectorAll(".startbar [data-act]").forEach(b=>b.addEventListener("click",()=>{ b.dataset.act==="copyPrev"?copyPrevWeek():applyBase(); }));
 }
-function cycleSchedule(d){
+function cycleWeekSchedule(){
   snapshot();
-  const wk=ensureWeek(ui.weekStart); const day=wk.days[d];
-  const next=SCHED_ORDER[(SCHED_ORDER.indexOf(day.schedule)+1)%SCHED_ORDER.length];
-  day.schedule=next; day.periodsCount=schedulePeriodCount(next,d);
-  persist(); render(); toast(`${DAY_NAMES[d]}曜を「${next}」に`);
+  const wk=ensureWeek(ui.weekStart);
+  const current=weekSchedule(wk);
+  const next=SCHED_ORDER[(SCHED_ORDER.indexOf(current)+1)%SCHED_ORDER.length];
+  applyWeekSchedule(next);
+  persist(); render(); toast(`週全体を「${next}」に`);
 }
 
 function selectCell(day,period){ ui.selected={day,period}; render(); openEditbar(day,period); }
@@ -938,6 +972,7 @@ function applyBase(){
     if(!wk.days[d].lessons[p]) wk.days[d].lessons[p]={subject:"",content:"",place:""};
     wk.days[d].lessons[p].subject=sub;
   }
+  applyWeekSchedule(weekSchedule(wk));
   persist(); render(); toast("基本の教科割を反映しました");
 }
 function clearContent(){
@@ -1040,11 +1075,37 @@ function importJson(file){ file.text().then(t=>{ try{ const d=JSON.parse(t); if(
 function openDrawer(id){ closeEditbar(); $("scrim").classList.add("show"); const drawer=$(id); drawer.scrollTop=0; drawer.classList.add("show"); if(id==="schedDrawer") buildSchedGrid(); if(id==="moreDrawer") fillSettings(); }
 function closeDrawers(){ $("scrim").classList.remove("show"); document.querySelectorAll(".drawer").forEach(d=>{ d.classList.remove("show"); d.scrollTop=0; }); }
 function buildSchedGrid(){
-  const wk=ensureWeek(ui.weekStart); let h="";
-  for(let d=1;d<=5;d++){ const sc=wk.days[d].schedule;
-    h+=`<div class="sg"><span class="dn">${DAY_NAMES[d]}</span><button class="sv ${sc==="通常"?"normal":""}" data-sd="${d}">${sc}</button></div>`; }
+  const wk=ensureWeek(ui.weekStart);
+  const current=weekSchedule(wk);
+  let h=SCHED_ORDER.map(sc=>`<div class="sg"><button class="sv ${sc===current?"on":""}" data-ws="${sc}">${sc}</button></div>`).join("");
   $("schedGrid").innerHTML=h;
-  $("schedGrid").querySelectorAll(".sv").forEach(b=>b.addEventListener("click",()=>{ cycleSchedule(+b.dataset.sd); buildSchedGrid(); }));
+  $("schedGrid").querySelectorAll("[data-ws]").forEach(b=>b.addEventListener("click",()=>{ setWeekSchedule(b.dataset.ws); buildSchedGrid(); buildShortDayGrid(); }));
+  buildShortDayGrid();
+}
+function setWeekSchedule(schedule){
+  snapshot();
+  applyWeekSchedule(schedule);
+  persist(); render(); toast(`週全体を「${schedule}」に`);
+}
+function buildShortDayGrid(){
+  const wk=ensureWeek(ui.weekStart);
+  let h="";
+  for(let d=1;d<=5;d++){
+    const on=hasShortDayOverride(wk,d);
+    h+=`<div class="sg"><span class="dn">${DAY_NAMES[d]}</span><button class="sv ${on?"on":""}" data-short="${d}">${on?"4時間":"通常"}</button></div>`;
+  }
+  $("shortDayGrid").innerHTML=h;
+  $("shortDayGrid").querySelectorAll("[data-short]").forEach(b=>b.addEventListener("click",()=>toggleShortDay(+b.dataset.short)));
+}
+function toggleShortDay(d){
+  snapshot();
+  const wk=ensureWeek(ui.weekStart);
+  if(hasShortDayOverride(wk,d)){
+    setDaySchedule(wk,d,weekSchedule(wk),false);
+  }else{
+    setDaySchedule(wk,d,"個人懇談",true);
+  }
+  persist(); render(); buildSchedGrid(); toast(`${DAY_NAMES[d]}曜の4時間授業を${hasShortDayOverride(wk,d)?"設定":"解除"}しました`);
 }
 function fillSettings(){
   $("className").value=store.meta.className; $("classId").value=CLASS_ID;
