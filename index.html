@@ -535,7 +535,8 @@ const SCHEDULES={
     times:["8:45-9:25","9:35-10:15","10:40-11:20","11:30-12:10","13:20-14:05","14:15-15:00"],
     note:"1〜4限40分・2限後25分放課・5限前25分放課"
   },
-  "個人懇談":{periods:4}
+  "個人懇談":{periods:4},
+  "4時間":{periods:4}
 };
 const SCHED_ORDER=["通常","教育相談","個人懇談"];
 const PE_PLACES=["運動場","体育館","プール"];
@@ -591,12 +592,12 @@ function migrate(){
       if(day.schedule===undefined) day.schedule="通常";
       if(day.periodsCount===undefined) day.periodsCount=DAY_PERIODS[d];
       if(day.schedule==="教育相談" && day.periodsCount===4) day.periodsCount=DAY_PERIODS[d];
-      if(!day.scheduleOverride && (day.schedule==="教育相談" || day.schedule==="個人懇談")) day.scheduleOverride=true;
       for(let p=1;p<=DAY_PERIODS[d];p++){
         if(!day.lessons[p]) day.lessons[p]={subject:(store.base[d]&&store.base[d][p])||"",content:"",place:""};
       }
       for(const p in day.lessons){ if(!day.lessons[p]) day.lessons[p]={subject:"",content:"",place:""}; if(day.lessons[p].place===undefined) day.lessons[p].place=""; }
     }
+    normalizeWeekSchedule(wk);
   }
 }
 const persist=()=>{ dirty=true; Store.save(store); queueCloudPush(); };
@@ -628,6 +629,24 @@ function applyWeekSchedule(schedule){
   const wk=ensureWeek(ui.weekStart);
   for(let d=1;d<=5;d++) setDaySchedule(wk,d,schedule,false);
 }
+function normalizeWeekSchedule(wk){
+  const counts={};
+  ["教育相談","個人懇談"].forEach(sc=>counts[sc]=0);
+  for(let d=1;d<=5;d++){
+    const sc=(wk.days[d]&&wk.days[d].schedule)||"通常";
+    if(counts[sc]!==undefined) counts[sc]++;
+  }
+  const weekly=counts["教育相談"]>=3 ? "教育相談" : counts["個人懇談"]>=3 ? "個人懇談" : "通常";
+  for(let d=1;d<=5;d++){
+    const day=wk.days[d];
+    const isShortException=!!day.scheduleOverride && day.periodsCount===4 && day.schedule!==weekly;
+    if(isShortException){
+      setDaySchedule(wk,d,day.schedule==="個人懇談" ? "4時間" : day.schedule,true);
+    }else{
+      setDaySchedule(wk,d,weekly,false);
+    }
+  }
+}
 function hasShortDayOverride(wk,d){
   return !!(wk.days[d] && wk.days[d].scheduleOverride && wk.days[d].periodsCount===4);
 }
@@ -635,21 +654,16 @@ function periodTimeLabel(wk,d,p){
   const day=wk&&wk.days&&wk.days[d];
   const schedule=day&&day.schedule;
   const custom=SCHEDULES[schedule]&&SCHEDULES[schedule].times;
-  return (custom&&custom[p-1]) || (PERIODS[p-1]&&PERIODS[p-1].time) || "";
+  const weekCustom=SCHEDULES[weekSchedule(wk)]&&SCHEDULES[weekSchedule(wk)].times;
+  return (custom&&custom[p-1]) || (day&&day.scheduleOverride&&weekCustom&&weekCustom[p-1]) || (PERIODS[p-1]&&PERIODS[p-1].time) || "";
 }
 function weekPeriodTimeLabel(wk,p){
-  let education=0, shown=0;
-  for(let d=1;d<=5;d++){
-    if(p<=pc(wk,d)){
-      shown++;
-      if(wk.days[d].schedule==="教育相談") education++;
-    }
-  }
-  return shown && education===shown ? periodTimeLabel(wk,1,p) : ((PERIODS[p-1]&&PERIODS[p-1].time)||"");
+  const custom=SCHEDULES[weekSchedule(wk)]&&SCHEDULES[weekSchedule(wk)].times;
+  return (custom&&custom[p-1]) || (PERIODS[p-1]&&PERIODS[p-1].time) || "";
 }
 function scheduleCountLabel(wk,d){
   const sc=wk.days[d].schedule || "通常";
-  return sc==="個人懇談" ? "（4時間）" : `（${pc(wk,d)}時間）`;
+  return sc==="個人懇談" || sc==="4時間" ? "（4時間）" : `（${pc(wk,d)}時間）`;
 }
 
 function snapshot(){ undoStack.push(JSON.stringify(store)); if(undoStack.length>30) undoStack.shift(); refreshUndo(); }
@@ -1103,7 +1117,7 @@ function toggleShortDay(d){
   if(hasShortDayOverride(wk,d)){
     setDaySchedule(wk,d,weekSchedule(wk),false);
   }else{
-    setDaySchedule(wk,d,"個人懇談",true);
+    setDaySchedule(wk,d,"4時間",true);
   }
   persist(); render(); buildSchedGrid(); toast(`${DAY_NAMES[d]}曜の4時間授業を${hasShortDayOverride(wk,d)?"設定":"解除"}しました`);
 }
