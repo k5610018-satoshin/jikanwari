@@ -59,6 +59,8 @@
   .tool-btn:disabled{opacity:.4;}
   .tool-btn.primary{background:var(--accent); color:#fff; border-color:var(--accent);}
   body.readonly .modes, body.readonly .tools{display:none;}
+  body.readonly .weeknav .nav-btn{display:none;}
+  body.readonly .weeknav .lbl{min-width:0;}
 
   main{padding:12px;}
 
@@ -170,6 +172,7 @@
   .cweek{display:flex; flex-direction:column; gap:6px;}
   .cw-row{display:grid; grid-template-columns:34px repeat(5,1fr); gap:5px;}
   .cw-head .cw-day{text-align:center; font-weight:800; padding:6px 0; color:var(--sub); font-size:14px;}
+  .cw-day-date{display:block; margin-top:1px; font-size:11px; line-height:1.05; color:var(--sub);}
   .cw-head .cw-day.today{color:var(--accent);}
   .cw-pno{display:flex; align-items:center; justify-content:center; font-weight:800; color:var(--sub); font-size:14px;}
   .cw-cell{min-height:50px; border-radius:8px; padding:5px 4px; display:flex; flex-direction:column; gap:1px; overflow:hidden;}
@@ -188,10 +191,10 @@
 
   .scrim{position:fixed; inset:0; background:rgba(20,28,48,.4); z-index:50; display:none;}
   .scrim.show{display:block;}
-  .drawer{position:fixed; left:0; right:0; bottom:0; z-index:51; background:var(--card);
+  .drawer{display:none; position:fixed; left:0; right:0; bottom:0; z-index:51; background:var(--card);
     border-radius:18px 18px 0 0; padding:16px 16px calc(20px + var(--safe-bottom));
-    max-height:85vh; overflow:auto; transform:translateY(100%); transition:transform .2s;}
-  .drawer.show{transform:translateY(0);}
+    max-height:85vh; overflow:auto; transform:translateY(calc(100% + 32px)); transition:transform .2s;}
+  .drawer.show{display:block; transform:translateY(0);}
   .drawer h3{margin:0 0 4px; font-size:17px;}
   .drawer .dsub{color:var(--sub); font-size:12px; margin:0 0 14px;}
   .drawer .sec{border:1px solid var(--line); border-radius:13px; padding:13px; margin-bottom:12px;}
@@ -236,7 +239,7 @@
   .gcal-prev .gday b{color:var(--accent);}
   /* 画面プレビュー用の表スタイル（罫線を画面でも表示） */
   table.ptt{width:100%; border-collapse:collapse; table-layout:fixed;}
-  table.ptt th, table.ptt td{border:1.3px solid #8a93a3; padding:6px; vertical-align:top; word-break:break-word;}
+  table.ptt th, table.ptt td{border:2px solid #48566b; padding:6px; vertical-align:top; word-break:break-word;}
   table.ptt th{background:#e9eef7; text-align:center; font-weight:800; font-size:13px;}
   table.ptt th.today{background:#d6e4ff;}
   table.ptt .pno{width:46px; text-align:center; font-weight:800; background:#f2f4f8; font-size:12px;}
@@ -249,6 +252,39 @@
   table.ptt tr.r-mochi td.pextra{background:var(--mochi);}
   table.ptt tr.r-shuku td.pextra{background:var(--shuku);}
   .print-sheet{display:none;}
+  @media (max-width:759px){
+    body.bar-open{padding-bottom:calc(204px + var(--safe-bottom));}
+    .editbar{display:grid; gap:6px; max-height:min(64dvh, 470px); overflow:hidden; padding:8px 10px;}
+    .eb-head{margin-bottom:0;}
+    .eb-head .where{min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;}
+    .eb-head .navmini button,.eb-head .close{width:34px;height:34px;min-height:34px;}
+    .subj-chips,.place-chips{flex-wrap:nowrap; overflow-x:auto; gap:5px; margin-bottom:0; padding-bottom:2px; scrollbar-width:none;}
+    .subj-chips::-webkit-scrollbar,.place-chips::-webkit-scrollbar,.unit-chips::-webkit-scrollbar{display:none;}
+    .schip{flex:0 0 auto; min-height:36px; padding:8px 10px; font-size:13px;}
+    .pchip{flex:0 0 auto; min-height:34px; padding:8px 10px; font-size:12px;}
+    .unit-chips{flex-wrap:nowrap; align-items:center; overflow-x:auto; overflow-y:hidden; gap:5px; max-height:58px; margin-bottom:0; padding:6px; scrollbar-width:none;}
+    .unit-chips .uhint{width:auto; flex:0 0 auto; margin:0; white-space:nowrap;}
+    .uchip{flex:0 0 auto; min-height:34px; padding:7px 10px; font-size:12px; white-space:nowrap;}
+    .eb-cont{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px;}
+    .eb-cont input{min-height:40px; padding:9px 10px;}
+    .eb-cont .same{min-height:40px; padding:9px 10px; font-size:12px;}
+    .drawer{top:calc(8px + var(--safe-top)); bottom:0; max-height:none; border-radius:16px 16px 0 0; padding:14px 14px calc(40px + var(--safe-bottom)); overflow-y:auto; -webkit-overflow-scrolling:touch;}
+    .drawer .sec{padding:10px; margin-bottom:9px;}
+    .drawer .dsub{margin-bottom:9px;}
+    .dh-close{position:sticky; top:0; float:right; z-index:2;}
+    .child-wrap{max-width:none;}
+    .cdate{font-size:15px; margin-bottom:5px;}
+    .cweek{gap:4px;}
+    .cw-row{grid-template-columns:30px repeat(5,minmax(0,1fr)); gap:4px;}
+    .cw-head .cw-day{padding:4px 0; font-size:12px; line-height:1.05;}
+    .cw-day-date{font-size:10px;}
+    .cw-pno{font-size:12px;}
+    .cw-cell{min-height:40px; padding:4px 3px; border-radius:7px;}
+    .cw-s{font-size:11px;}
+    .cw-c{font-size:10px; line-height:1.1; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+    .cw-exrow .cw-pno{font-size:10px;}
+    .cw-exrow .cw-cell{min-height:26px; font-size:10px; line-height:1.1;}
+  }
   @media print{
     body{background:#fff; padding:0; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
     header,main,.editbar,.scrim,.drawer,.toast{display:none !important;}
@@ -256,7 +292,7 @@
     .p-title{text-align:center; font-weight:800; margin:0 0 3px; font-size:18px;}
     .p-date{text-align:center; font-weight:700; font-size:14px; color:#333; margin:0 0 7px;}
     table.ptt{width:100%; border-collapse:collapse; table-layout:fixed;}
-    table.ptt th, table.ptt td{border:1.2px solid #555; padding:5px 6px; vertical-align:top; word-break:break-word;}
+    table.ptt th, table.ptt td{border:1.6px solid #333; padding:5px 6px; vertical-align:top; word-break:break-word;}
     table.ptt th{background:#e9eef7; text-align:center; font-size:14px; print-color-adjust:exact;}
     table.ptt th.today{background:#d6e4ff;}
     table.ptt .pno{width:46px; text-align:center; font-weight:800; background:#f2f4f8; font-size:12px; print-color-adjust:exact;}
@@ -279,7 +315,7 @@
   @media (min-width:760px){
     .only-wide{display:block;} .only-narrow{display:none;}
     main{max-width:1000px; margin:0 auto;}
-    .drawer{left:50%; right:auto; transform:translate(-50%,100%); width:640px; border-radius:18px; bottom:5vh;}
+    .drawer{left:50%; right:auto; transform:translate(-50%, calc(100% + 32px)); width:640px; border-radius:18px; bottom:5vh;}
     .drawer.show{transform:translate(-50%,0);}
   }
 </style>
@@ -337,7 +373,7 @@
   <h3>📅 日課・テンプレート</h3>
   <p class="dsub">曜日の日課を変えると、その日の時間数が切り替わります（タップで循環）。</p>
   <div class="sec"><h4>曜日ごとの日課</h4><div class="sched-grid" id="schedGrid"></div>
-    <p class="imp-note">通常 → 教育相談（4時間）→ 個人懇談（4時間）の順に切り替わります。</p></div>
+    <p class="imp-note">通常 → 教育相談（1〜4限は40分、5・6限は残す）→ 個人懇談（4時間）の順に切り替わります。</p></div>
   <div class="sec"><h4>クイック適用</h4>
     <div class="tpl-btns">
       <button class="tool-btn" id="tplSwim">🏊 水泳を入れる（月1・2／水5・6）</button>
@@ -486,7 +522,15 @@ const EXTRAS = [
 let PERIODS=[{no:1,time:"8:45"},{no:2,time:"9:40"},{no:3,time:"10:40"},{no:4,time:"11:35"},{no:5,time:"13:20"},{no:6,time:"14:15"}];
 const DAY_NAMES={1:"月",2:"火",3:"水",4:"木",5:"金"};
 const DAY_PERIODS={1:5,2:6,3:6,4:5,5:6};
-const SCHEDULES={ "通常":{periods:null}, "教育相談":{periods:4}, "個人懇談":{periods:4} };
+const SCHEDULES={
+  "通常":{periods:null},
+  "教育相談":{
+    periods:null,
+    times:["8:45-9:25","9:35-10:15","10:40-11:20","11:30-12:10","13:20-14:05","14:15-15:00"],
+    note:"1〜4限40分・2限後25分放課・5限前25分放課"
+  },
+  "個人懇談":{periods:4}
+};
 const SCHED_ORDER=["通常","教育相談","個人懇談"];
 const PE_PLACES=["運動場","体育館","プール"];
 
@@ -506,7 +550,7 @@ function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x;}
 const md=d=>`${d.getMonth()+1}/${d.getDate()}`;
 
 let store, ui={
-  weekStart:ymd(mondayOf(new Date())), mode:READONLY?"child":"edit",
+  weekStart:PARAMS.get("week") || ymd(mondayOf(new Date())), mode:READONLY?"child":"edit",
   activeDay:((new Date().getDay()||7)<=5?(new Date().getDay()||7):1),
   childDay:((new Date().getDay()||7)<=5?(new Date().getDay()||7):1),
   childView: (READONLY && window.matchMedia("(max-width:520px)").matches)?"day":"week",
@@ -540,12 +584,39 @@ function migrate(){
       if(day.shukudai===undefined) day.shukudai="";
       if(day.schedule===undefined) day.schedule="通常";
       if(day.periodsCount===undefined) day.periodsCount=DAY_PERIODS[d];
+      if(day.schedule==="教育相談" && day.periodsCount===4) day.periodsCount=DAY_PERIODS[d];
+      for(let p=1;p<=DAY_PERIODS[d];p++){
+        if(!day.lessons[p]) day.lessons[p]={subject:(store.base[d]&&store.base[d][p])||"",content:"",place:""};
+      }
       for(const p in day.lessons){ if(!day.lessons[p]) day.lessons[p]={subject:"",content:"",place:""}; if(day.lessons[p].place===undefined) day.lessons[p].place=""; }
     }
   }
 }
 const persist=()=>{ dirty=true; Store.save(store); queueCloudPush(); };
 function pc(wk,d){ return Math.max(1, (wk.days[d]&&wk.days[d].periodsCount)||DAY_PERIODS[d]); }
+function schedulePeriodCount(schedule,d){
+  return SCHEDULES[schedule] && SCHEDULES[schedule].periods ? SCHEDULES[schedule].periods : DAY_PERIODS[d];
+}
+function periodTimeLabel(wk,d,p){
+  const day=wk&&wk.days&&wk.days[d];
+  const schedule=day&&day.schedule;
+  const custom=SCHEDULES[schedule]&&SCHEDULES[schedule].times;
+  return (custom&&custom[p-1]) || (PERIODS[p-1]&&PERIODS[p-1].time) || "";
+}
+function weekPeriodTimeLabel(wk,p){
+  let education=0, shown=0;
+  for(let d=1;d<=5;d++){
+    if(p<=pc(wk,d)){
+      shown++;
+      if(wk.days[d].schedule==="教育相談") education++;
+    }
+  }
+  return shown && education===shown ? periodTimeLabel(wk,1,p) : ((PERIODS[p-1]&&PERIODS[p-1].time)||"");
+}
+function scheduleCountLabel(wk,d){
+  const sc=wk.days[d].schedule || "通常";
+  return sc==="個人懇談" ? "（4時間）" : `（${pc(wk,d)}時間）`;
+}
 
 function snapshot(){ undoStack.push(JSON.stringify(store)); if(undoStack.length>30) undoStack.shift(); refreshUndo(); }
 function undo(){ if(!undoStack.length) return; store=JSON.parse(undoStack.pop()); dirty=true; Store.save(store); render(); refreshUndo(); queueCloudPush(); toast("元に戻しました"); }
@@ -620,14 +691,14 @@ function dayViewHTML(){
   tabs+=`</div>`;
   const sc=wk.days[d].schedule;
   const sched=`<div class="day-sched"><span class="lbl">日課</span>
-    <button class="sched-btn" id="cycleSched">${sc} ${sc==="通常"?"（"+pc(wk,d)+"時間）":"（4時間）"} ▸</button></div>`;
+    <button class="sched-btn" id="cycleSched">${sc} ${scheduleCountLabel(wk,d)} ▸</button></div>`;
   let list=`<div class="lesson-list">`;
   for(let p=1;p<=pc(wk,d);p++){
     const l=wk.days[d].lessons[p]||{subject:"",content:"",place:""};
     const sel=(ui.selected&&ui.selected.day===d&&ui.selected.period===p)?"sel":"";
     list+=`<div class="lrow ${sel}" data-d="${d}" data-p="${p}">
       <div class="chip" style="background:${l.subject?colorOf(l.subject):'#e3e8f1'}"></div>
-      <div class="pno">${p}<small>${PERIODS[p-1].time}</small></div>
+      <div class="pno">${p}<small>${escapeHtml(periodTimeLabel(wk,d,p))}</small></div>
       <div class="body"><div class="subj">${escapeHtml(l.subject)||"＋ 教科を選ぶ"}${l.subject==="体育"&&l.place?`<span class="place">@${escapeHtml(l.place)}</span>`:""}</div>
       <div class="cont">${escapeHtml(l.content)||'<span style="color:#b3bcce">ひとこと内容</span>'}</div></div></div>`;
   }
@@ -654,14 +725,14 @@ function cycleSchedule(d){
   snapshot();
   const wk=ensureWeek(ui.weekStart); const day=wk.days[d];
   const next=SCHED_ORDER[(SCHED_ORDER.indexOf(day.schedule)+1)%SCHED_ORDER.length];
-  day.schedule=next; day.periodsCount=SCHEDULES[next].periods||DAY_PERIODS[d];
+  day.schedule=next; day.periodsCount=schedulePeriodCount(next,d);
   persist(); render(); toast(`${DAY_NAMES[d]}曜を「${next}」に`);
 }
 
 function selectCell(day,period){ ui.selected={day,period}; render(); openEditbar(day,period); }
 function openEditbar(day,period){
   const wk=ensureWeek(ui.weekStart); const l=wk.days[day].lessons[period];
-  $("ebWhere").textContent=`${DAY_NAMES[day]}・${period}限（${PERIODS[period-1].time}）`;
+  $("ebWhere").textContent=`${DAY_NAMES[day]}・${period}限（${periodTimeLabel(wk,day,period)}）`;
   let chips=`<button class="schip none ${!l.subject?"on":""}" data-s="">なし</button>`;
   chips+=SUBJECTS.map(s=>`<button class="schip ${l.subject===s.n?"on":""}" data-s="${s.n}" style="background:${s.c}">${s.n}</button>`).join("");
   $("subjChips").innerHTML=chips;
@@ -746,16 +817,14 @@ if(window.visualViewport){ window.visualViewport.addEventListener("resize",adjus
 function renderChild(){
   const wk=ensureWeek(ui.weekStart);
   const banner = READONLY ? `<div class="child-banner">📅 ${escapeHtml(store.meta.className)} の時間割（閲覧用）</div>` : "";
-  const toggle=`<div class="cview-toggle">
-    <button class="cvt ${ui.childView==="week"?"on":""}" data-cv="week">📅 週ぜんたい</button>
-    <button class="cvt ${ui.childView==="day"?"on":""}" data-cv="day">📖 1日ずつ</button></div>`;
-  main.innerHTML=`<div class="child-wrap">${banner}${toggle}${ui.childView==="week"?childWeekHTML(wk):childDayHTML(wk)}</div>`;
-  document.querySelectorAll(".cvt").forEach(b=>b.addEventListener("click",()=>{ui.childView=b.dataset.cv;render();}));
-  document.querySelectorAll(".ctab").forEach(t=>t.addEventListener("click",()=>{ui.childDay=+t.dataset.cday;render();}));
+  main.innerHTML=`<div class="child-wrap">${banner}${childWeekHTML(wk)}</div>`;
 }
 function childWeekHTML(wk){
   let head=`<div class="cw-row cw-head"><div class="cw-pno"></div>`;
-  for(let d=1;d<=5;d++) head+=`<div class="cw-day ${isToday(d)?"today":""}">${DAY_NAMES[d]}</div>`;
+  for(let d=1;d<=5;d++){
+    const dateObj=addDays(new Date(ui.weekStart+"T00:00:00"),d-1);
+    head+=`<div class="cw-day ${isToday(d)?"today":""}">${DAY_NAMES[d]}<span class="cw-day-date">${md(dateObj)}</span></div>`;
+  }
   head+=`</div>`;
   let rows="";
   for(let p=1;p<=6;p++){
@@ -826,7 +895,7 @@ function printSheetInner(){
   head+=`</tr>`;
   let body="";
   for(let p=1;p<=6;p++){
-    body+=`<tr><td class="pno">${p}<br><span style="font-size:9px;color:#666">${PERIODS[p-1].time}</span></td>`;
+    body+=`<tr><td class="pno">${p}<br><span style="font-size:9px;color:#666">${escapeHtml(weekPeriodTimeLabel(wk,p))}</span></td>`;
     for(let d=1;d<=5;d++){
       if(p>pc(wk,d)){ body+=`<td class="off"></td>`; continue; }
       const l=wk.days[d].lessons[p]||{subject:"",content:"",place:""};
@@ -855,7 +924,7 @@ function copyPrevWeek(){
   const cur=ensureWeek(ui.weekStart), src=store.weeks[prev];
   for(let d=1;d<=5;d++){
     cur.days[d].event=src.days[d]?.event||""; cur.days[d].mochimono=src.days[d]?.mochimono||""; cur.days[d].shukudai=src.days[d]?.shukudai||"";
-    cur.days[d].schedule=src.days[d]?.schedule||"通常"; cur.days[d].periodsCount=src.days[d]?.periodsCount||DAY_PERIODS[d];
+    cur.days[d].schedule=src.days[d]?.schedule||"通常"; cur.days[d].periodsCount=schedulePeriodCount(cur.days[d].schedule,d);
     for(let p=1;p<=DAY_PERIODS[d];p++){ const s=src.days[d]?.lessons[p]; if(s) cur.days[d].lessons[p]={subject:s.subject,content:s.content,place:s.place||""}; }
   }
   persist(); render(); toast("先週をコピーしました");
@@ -967,8 +1036,8 @@ function exportJson(){
 }
 function importJson(file){ file.text().then(t=>{ try{ const d=JSON.parse(t); if(!d.weeks||!d.base) throw new Error(); if(!d.meta) d.meta={className:"5年4組"}; snapshot(); store=d; migrate(); persist(); render(); closeDrawers(); toast("読み込みました"); }catch(e){ toast("読み込めませんでした"); } }); }
 
-function openDrawer(id){ $("scrim").classList.add("show"); $(id).classList.add("show"); if(id==="schedDrawer") buildSchedGrid(); if(id==="moreDrawer") fillSettings(); }
-function closeDrawers(){ $("scrim").classList.remove("show"); document.querySelectorAll(".drawer").forEach(d=>d.classList.remove("show")); }
+function openDrawer(id){ closeEditbar(); $("scrim").classList.add("show"); const drawer=$(id); drawer.scrollTop=0; drawer.classList.add("show"); if(id==="schedDrawer") buildSchedGrid(); if(id==="moreDrawer") fillSettings(); }
+function closeDrawers(){ $("scrim").classList.remove("show"); document.querySelectorAll(".drawer").forEach(d=>{ d.classList.remove("show"); d.scrollTop=0; }); }
 function buildSchedGrid(){
   const wk=ensureWeek(ui.weekStart); let h="";
   for(let d=1;d<=5;d++){ const sc=wk.days[d].schedule;
@@ -986,7 +1055,7 @@ function fillSettings(){
   $("gcalClient").value=getGcalClientId();
   const oh=$("originHint"); if(oh) oh.textContent=location.origin;
 }
-function childUrl(){ return location.origin+location.pathname+`?view=child&class=${encodeURIComponent(CLASS_ID)}`; }
+function childUrl(){ return location.origin+location.pathname+`?view=child&class=${encodeURIComponent(CLASS_ID)}&week=${encodeURIComponent(ui.weekStart)}`; }
 
 /* ===== QRコード ===== */
 function qrDataUrl(text,cell){ try{ const q=qrcode(0,'M'); q.addData(text); q.make(); return q.createDataURL(cell||4,4); }catch(e){ return ""; } }
